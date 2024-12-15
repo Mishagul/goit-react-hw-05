@@ -1,0 +1,11 @@
+.list {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    list-style: none;
+    justify-content: center;
+}
+
+.listItem {
+    color: black;
+}
