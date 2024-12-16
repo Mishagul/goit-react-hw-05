@@ -1,30 +1,28 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import MovieList from '../../components/MovieList/MovieList';
+import { useEffect, useState } from "react"
+import MovieList from "../../components/MovieList/MovieList"
+import { fetchTrendMovies } from "../../services/api"
 
 const HomePage = () => {
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState([])
 
   useEffect(() => {
-    const getTrendingMovies = async () => {
+    const getData = async () => {
       try {
-        const response = await axios.get('https://api.themoviedb.org/3/trending/movie/day', {
-          params: { api_key: 'cfe38d0d9527093ec6931fd3dd651d72' }
-        });
-        setMovies(response.data.results);
+        const { results } = await fetchTrendMovies()
+        setMovies(results)
       } catch (error) {
-        console.error('Error fetching trending movies:', error);
+        console.log(error)
       }
-    };
-    getTrendingMovies();
-  }, []);
+    }
+    getData()
+  }, [])
 
   return (
-    <div>
-      <h1>Trending Movies</h1>
-      <MovieList movies={movies} />
-    </div>
-  );
-};
+    <>
+      <h1>Trending today</h1>
+      <MovieList trendMovies={movies} />
+    </>
+  )
+}
 
-export default HomePage;
+export default HomePage

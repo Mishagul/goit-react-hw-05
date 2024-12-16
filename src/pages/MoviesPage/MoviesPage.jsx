@@ -1,71 +1,69 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useLocation, useSearchParams } from 'react-router-dom'; 
-import MovieList from '../../components/MovieList/MovieList';
-import styles from './MoviesPage.module.css'; 
+import s from "./MoviesPage.module.css"
+import { Field, Form, Formik } from "formik"
+import MovieList from "../../components/MovieList/MovieList"
+import { useSearchParams } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { fetchSearchMovies } from "../../services/api"
 
 const MoviesPage = () => {
-  const [query, setQuery] = useState('');
-  const [movies, setMovies] = useState([]);
-  const [isSearched, setIsSearched] = useState(false);
-  const [error, setError] = useState(null);  
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation(); 
+  const [allMovies, setAllMovies] = useState([])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [loading, setLoading] = useState(false)
+  const query = searchParams.get("query") ?? ""
+
+  const handleSetQuery = (newValue) => {
+    searchParams.set("query", newValue)
+    setSearchParams(searchParams)
+  }
+
+  const handleSubmit = (value) => {
+    handleSetQuery(value.query)
+  }
+
+  const initialValues = {
+    query: "",
+  }
 
   useEffect(() => {
-    const queryParam = searchParams.get('query') || '';
-    setQuery(queryParam);
-  }, [searchParams]);
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (query.trim()) {
-      setIsSearched(true);
-      setSearchParams({ query });
+    if (!query) return
+    const getData = async () => {
+      setLoading(true)
       try {
-        const response = await axios.get('https://api.themoviedb.org/3/search/movie', {
-          params: { 
-            api_key: 'cfe38d0d9527093ec6931fd3dd651d72', 
-            query, 
-            include_adult: false 
-          }
-        });
-        setMovies(response.data.results);
-        setError(null);  
+        const { results } = await fetchSearchMovies(query)
+        setAllMovies(results)
       } catch (error) {
-        console.error('Помилка при пошуку фільмів:', error);
-        setMovies([]);  
-        setError('Не вдалося знайти фільми. Спробуйте ще раз пізніше.');
+        console.log(error)
+      } finally {
+        setLoading(false)
       }
-    } else {
-      setMovies([]);  
     }
-  };
+    getData()
+  }, [query])
+
+  const filteredMovies = allMovies.filter((movie) =>
+    movie.title.toLowerCase().includes(query.toLowerCase())
+  )
 
   return (
-    <div>
-      <form onSubmit={handleSearch}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)} 
-          placeholder="Find movie"
-          className={styles.input}
-        />
-        <button className={styles.btn} type="submit">Search</button>
-      </form>
+    <>
+      <Formik onSubmit={handleSubmit} initialValues={initialValues}>
+        <Form className={s.form}>
+          <Field type="text" name="query" placeholder="Enter movie name" />
+          <button type="submit" className={s.searchBtn}>
+            Search
+          </button>
+        </Form>
+      </Formik>
+      {loading && <p>Loading...</p>}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}  
+      {!loading && query && filteredMovies.length === 0 && (
+        <p>No movies found for &quot;{query}&quot;</p>
+      )}
+      {!loading && query && filteredMovies.length > 0 && (
+        <MovieList trendMovies={filteredMovies} />
+      )}
+    </>
+  )
+}
 
-      <div>
-        {movies.length > 0 ? (
-          <MovieList movies={movies} location={location} /> 
-        ) : (
-          isSearched && !error && <p>Фільми не знайдені</p> 
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default MoviesPage;
+export default MoviesPage

@@ -1,37 +1,53 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';  
-import axios from 'axios'
+import s from "./MovieCast.module.css"
+import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
+import { fetchCreditsByMovieId } from "../../services/api"
+import { defaultImg } from "../../pages/MovieDetailsPage/MovieDetailsPage"
 
 const MovieCast = () => {
-  const { movieId } = useParams();  
-  const [cast, setCast] = useState([]);
+  const { movieId } = useParams()
+  const [credits, setCredits] = useState(null)
 
   useEffect(() => {
-    const getCast = async () => {
+    if (!movieId) return
+    const getData = async () => {
       try {
-        const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}/credits`, {
-          params: { api_key: 'cfe38d0d9527093ec6931fd3dd651d72' }
-        });
-        setCast(response.data.cast);
+        const data = await fetchCreditsByMovieId(movieId)
+        setCredits(data)
       } catch (error) {
-        console.error('Error fetching movie cast:', error);
+        console.log(error)
       }
-    };
-    getCast();
-  }, [movieId]);  
+    }
+    getData()
+  }, [movieId])
+
+  if (!credits) {
+    return <p>Loading...</p>
+  }
 
   return (
     <div>
-      <h2>Cast</h2>
-      <ul>
-        {cast.map((actor) => (
-          <li key={actor.id}> 
-            <p>{actor.name}</p>
+      <ul className={s.castList}>
+        {credits.map((credit) => (
+          <li key={credit.id} className={s.castItem}>
+            <img
+              src={
+                credit.profile_path
+                  ? `https://image.tmdb.org/t/p/w500/${credit.profile_path}`
+                  : defaultImg
+              }
+              alt={`${credit.name}'s photo`}
+              width={240}
+              height={360}
+              className={s.castImg}
+            />
+            <h4>{credit.name}</h4>
+            <p>Character: {credit.character}</p>
           </li>
         ))}
       </ul>
     </div>
-  );
-};
+  )
+}
 
-export default MovieCast;
+export default MovieCast

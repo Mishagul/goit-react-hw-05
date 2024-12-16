@@ -1,73 +1,81 @@
-import { useEffect, useState, Suspense, useRef } from 'react';
-import { useParams, useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
-import axios from 'axios';
+import s from "./MovieDetailsPage.module.css"
+import { Suspense, useEffect, useRef, useState } from "react"
+import { Link, NavLink, Outlet, useLocation, useParams } from "react-router-dom"
+import { fetchMovieById } from "../../services/api"
+import clsx from "clsx"
+
+export const defaultImg =
+  "https://dummyimage.com/400x600/cdcdcd/000.jpg&text=No+poster"
+const buildLinkClass = ({ isActive }) => {
+  return clsx("link", isActive && "active")
+}
 
 const MovieDetailsPage = () => {
-  const { movieId } = useParams();
-  const [movie, setMovie] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCastVisible, setIsCastVisible] = useState(false);  
-  const [isReviewsVisible, setIsReviewsVisible] = useState(false); 
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  
-  const locationStateRef = useRef(location.state?.from || '/movies');
-  
-  const apiKey = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjZmUzOGQwZDk1MjcwOTNlYzY5MzFmZDNkZDY1MWQ3MiIsIm5iZiI6MTczMjI5NTE2OC42NzY3MTksInN1YiI6IjY3NDBhY2UxMWNkOGMyNDNlNmJlNzMwNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.LqgY5nz6Zsz1gmjTmi85498TpXQWkP-Io3M4IXAyb7Y';  
-
+  const { movieId } = useParams()
+  const [movie, setMovie] = useState(null)
+  const location = useLocation()
+  const goBackLink = useRef(location.state ?? "/movies")
   useEffect(() => {
-    const getMovieDetails = async () => {
-      try {
-        const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieId}`, {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          }
-        });
-        setMovie(response.data);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching movie details:', error);
-      }
-    };
-    getMovieDetails();
-  }, [movieId]);
+    if (!movieId) return
+    const getData = async () => {
+      const data = await fetchMovieById(movieId)
+      setMovie(data)
+    }
+    getData()
+  }, [movieId])
 
-  if (isLoading) return <p>Loading...</p>;
-
-  const loadCast = () => {
-    setIsCastVisible(!isCastVisible);
-    setIsReviewsVisible(false);
-  };
-
-  const loadReviews = () => {
-    setIsReviewsVisible(!isReviewsVisible);
-    setIsCastVisible(false);
-  };
-
-  const handleGoBack = () => {
-    navigate(locationStateRef.current);
-  };
+  if (!movie) {
+    return <p>Loading...</p>
+  }
 
   return (
-    <div>
-      <button onClick={handleGoBack}>Go back</button>
-      <h1>{movie.title}</h1>
-      <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
-      <p>{movie.overview}</p>
-
-      <ul>
-        <li>
-          <Link to="cast">Cast</Link>
-        </li>
-        <li>
-          <Link to="reviews">Reviews</Link>
-        </li>
-      </ul>
-
-      <Outlet />
+    <div className={s.container}>
+      <Link to={goBackLink.current} className={s.backBtn}>
+        Go Back
+      </Link>
+      <div className={s.movieWrapper}>
+        <img
+          src={
+            movie.poster_path
+              ? `https://image.tmdb.org/t/p/w500/${movie.poster_path}`
+              : defaultImg
+          }
+          width={250}
+          alt="Movie poster"
+          className={s.img}
+        />
+        <div>
+          <h2>{movie.title} </h2>
+          <p>Release Date: {movie.release_date}</p>
+          <p>User Score: {Math.ceil(movie.vote_average * 10)}%</p>
+          <h3>Overview</h3>
+          <p>{movie.overview}</p>
+          <h3>Genres</h3>
+          <ul className={s.genreList}>
+            {movie.genres.map((genre) => (
+              <li key={genre.id} className={s.genreItem}>
+                {genre.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div>
+        <p>Aditional information</p>
+        <nav>
+          <NavLink className={buildLinkClass} to="cast">
+            Cast
+          </NavLink>
+          <NavLink className={buildLinkClass} to="reviews">
+            Reviews
+          </NavLink>
+        </nav>
+      </div>
+      <Suspense fallback={<h3>Loading data...</h3>}>
+        <Outlet />
+      </Suspense>
     </div>
-  );
-};
+  )
+}
 
-export default MovieDetailsPage;
+export default MovieDetailsPage
